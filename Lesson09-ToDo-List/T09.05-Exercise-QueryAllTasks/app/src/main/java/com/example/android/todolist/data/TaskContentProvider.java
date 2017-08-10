@@ -26,6 +26,7 @@ import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
 import android.support.annotation.NonNull;
 
+import static com.example.android.todolist.data.TaskContract.TaskEntry.COLUMN_PRIORITY;
 import static com.example.android.todolist.data.TaskContract.TaskEntry.TABLE_NAME;
 
 // Verify that TaskContentProvider extends from ContentProvider and implements required methods
@@ -119,16 +120,48 @@ public class TaskContentProvider extends ContentProvider {
     @Override
     public Cursor query(@NonNull Uri uri, String[] projection, String selection,
                         String[] selectionArgs, String sortOrder) {
+        // Get access to the task database (to write new data to)
+        final SQLiteDatabase db = mTaskDbHelper.getReadableDatabase();
 
-        // TODO (1) Get access to underlying database (read-only for query)
+        // Write URI matching code to identify the match for the tasks directory
+        int match = sUriMatcher.match(uri);
+        Cursor returnCursor;
 
-        // TODO (2) Write URI match code and set a variable to return a Cursor
+        switch (match) {
+            case TASKS:
+                returnCursor = db.query(TABLE_NAME,
+                        projection,
+                        selection,
+                        selectionArgs,
+                        null,
+                        null,
+                        sortOrder);
 
-        // TODO (3) Query for the tasks directory and write a default case
+                break;
+            case TASK_WITH_ID:
+                String id = uri.getPathSegments().get(1);
 
-        // TODO (4) Set a notification URI on the Cursor and return that Cursor
+                String mSelection = "_id=?";
+                String[] mSelectionArgs = new String[] { id };
 
-        throw new UnsupportedOperationException("Not yet implemented");
+                returnCursor = db.query(TABLE_NAME,
+                        projection,
+                        mSelection,
+                        mSelectionArgs,
+                        null,
+                        null,
+                        sortOrder);
+
+                break;
+            // Set the value for the returnedUri and write the default case for unknown URI's
+            // Default case throws an UnsupportedOperationException
+            default:
+                throw new UnsupportedOperationException("Unknown uri: " + uri);
+        }
+
+        returnCursor.setNotificationUri(getContext().getContentResolver(), uri);
+
+        return returnCursor;
     }
 
 
